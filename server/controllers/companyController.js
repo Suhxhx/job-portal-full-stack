@@ -27,7 +27,23 @@ export const registerCompany = async (req, res) => {
         const salt = await bcrypt.genSalt(10)
         const hashPassword = await bcrypt.hash(password, salt)
 
-        const imageUpload = await cloudinary.uploader.upload(imageFile.path)
+        //const imageUpload = await cloudinary.uploader.upload(imageFile.path)
+        let imageUpload;
+
+try {
+    console.log("Uploading image to Cloudinary...");
+    console.log("Cloud name:", process.env.CLOUDINARY_CLOUD_NAME);
+    console.log("Image file:", imageFile);
+    console.log("Uploading with config:", cloudinary.config());
+    
+    imageUpload = await cloudinary.uploader.upload(imageFile.path);
+
+    console.log("Upload success:", imageUpload);
+
+} catch (error) {
+    console.log("Cloudinary error:", error); // 👈 VERY IMPORTANT
+    return res.json({ success: false, message: "Image upload failed" });
+}
 
         const company = await Company.create({
             name,
@@ -53,6 +69,37 @@ export const registerCompany = async (req, res) => {
 }
 
 // Login Company
+// export const loginCompany = async (req, res) => {
+
+//     const { email, password } = req.body
+
+//     try {
+
+//         const company = await Company.findOne({ email })
+
+//         if (await bcrypt.compare(password, company.password)) {
+
+//             res.json({
+//                 success: true,
+//                 company: {
+//                     _id: company._id,
+//                     name: company.name,
+//                     email: company.email,
+//                     image: company.image
+//                 },
+//                 token: generateToken(company._id)
+//             })
+
+//         }
+//         else {
+//             res.json({ success: false, message: 'Invalid email or password' })
+//         }
+
+//     } catch (error) {
+//         res.json({ success: false, message: error.message })
+//     }
+
+// }
 export const loginCompany = async (req, res) => {
 
     const { email, password } = req.body
@@ -61,28 +108,33 @@ export const loginCompany = async (req, res) => {
 
         const company = await Company.findOne({ email })
 
-        if (await bcrypt.compare(password, company.password)) {
-
-            res.json({
-                success: true,
-                company: {
-                    _id: company._id,
-                    name: company.name,
-                    email: company.email,
-                    image: company.image
-                },
-                token: generateToken(company._id)
-            })
-
+        // ✅ FIX 1: check if company exists
+        if (!company) {
+            return res.json({ success: false, message: "Company not found" })
         }
-        else {
-            res.json({ success: false, message: 'Invalid email or password' })
+
+        // ✅ FIX 2: compare password safely
+        const isMatch = await bcrypt.compare(password, company.password)
+
+        if (!isMatch) {
+            return res.json({ success: false, message: "Invalid email or password" })
         }
+
+        // ✅ SUCCESS
+        res.json({
+            success: true,
+            company: {
+                _id: company._id,
+                name: company.name,
+                email: company.email,
+                image: company.image
+            },
+            token: generateToken(company._id)
+        })
 
     } catch (error) {
         res.json({ success: false, message: error.message })
     }
-
 }
 
 // Get Company Data

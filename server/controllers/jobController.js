@@ -1,5 +1,7 @@
 import Job from "../models/Job.js"
+import connectCloudinary from '../config/cloudinary.js'
 
+connectCloudinary(); // 👈 FORCE config here
 
 
 // Get All Jobs
